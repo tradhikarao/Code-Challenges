@@ -32,7 +32,14 @@ namespace ExcaliburCodingAssignment
 
             services.AddDbContext<ExcaliburDbContext>(option=>option.UseSqlServer(@"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=ExcaliburCodingAssignment;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False;"));
 
-            services.AddMvc();
+            services.AddMvc()
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.Converters.Add(new Converter.DateTimeConverter());
+                    options.JsonSerializerOptions.Converters.Add(new Converter.DoubleConverter());
+                });
+
+            services.AddSwaggerGen(c => c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo() { Title = "Order Combined API", Version = "v1" }));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -50,6 +57,9 @@ namespace ExcaliburCodingAssignment
             app.UseAuthorization();
 
             excaliburDbContext.Database.EnsureCreated();
+
+            app.UseSwagger();
+            app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "API for Combined Orders"));
 
             app.UseEndpoints(endpoints =>
             {

@@ -8,7 +8,7 @@ using ExcaliburCodingAssignment.Database;
 using ExcaliburCodingAssignment.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-
+using Microsoft.EntityFrameworkCore;
 
 namespace ExcaliburCodingAssignment.Controllers
 {
@@ -26,20 +26,30 @@ namespace ExcaliburCodingAssignment.Controllers
 
         // GET: api/OrderCombined
         [HttpGet]
-        public IEnumerable<OrderCombined> Get(DateTime fromDate, DateTime toDate, string desc = "")
+        public IEnumerable<OrderCombined> Get()
         {
             return _dbContext.OrderCombined.ToList();
         }
 
         // GET: api/OrderCombined/5
         [HttpGet("{id}", Name = "Get")]
-        public string Get(int id)
+        public async Task<ActionResult<OrderCombined>>  Get(int id)
         {
-            return "value";
+            var orderCombined = await _dbContext.OrderCombined.FindAsync(id);
+
+            if (orderCombined == null)
+            {
+                return NotFound();
+            }
+
+            return orderCombined;
         }
 
-        // POST: api/OrderCombined
+       
+
+        // POST: api/OrderCombined/Search
         [HttpPost]
+        [Route("Normalize")]
         public IActionResult Post([FromBody] OrderCombinedParamModel model)
         {
  
@@ -109,14 +119,54 @@ namespace ExcaliburCodingAssignment.Controllers
 
         // PUT: api/OrderCombined/5
         [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
+        public async Task<IActionResult> Put(int id, OrderCombined orderCombined)
         {
+            if (id != orderCombined.Id)
+            {
+                return BadRequest();
+            }
+
+            _dbContext.Entry(orderCombined).State = EntityState.Modified;
+
+            try
+            {
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!OrderCombinedExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
         }
+
 
         // DELETE: api/ApiWithActions/5
         [HttpDelete("{id}")]
-        public void Delete(int id)
+        public async Task<ActionResult<OrderCombined>> Delete(int id)
         {
+            var orderCombined = await _dbContext.OrderCombined.FindAsync(id);
+            if (orderCombined == null)
+            {
+                return NotFound();
+            }
+
+            _dbContext.OrderCombined.Remove(orderCombined);
+            await _dbContext.SaveChangesAsync();
+
+            return orderCombined;
+        }
+
+        private bool OrderCombinedExists(int id)
+        {
+            return _dbContext.OrderCombined.Any(e => e.Id == id);
         }
     }
 }
