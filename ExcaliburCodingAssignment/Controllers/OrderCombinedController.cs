@@ -62,7 +62,7 @@ namespace ExcaliburCodingAssignment.Controllers
 
 
             //Use IQeryable collection type for faster performance
-            var filteredOrderDetails = from ordDetail in _dbContext.OrderDetail.AsQueryable()
+            /*var filteredOrderDetails = from ordDetail in _dbContext.OrderDetail.AsQueryable()
                                        where (ordDetail.OrderDesc.ToLower().Contains(model.descParam.ToLower()) || model.descParam == null) &&
                                        (ordDetail.OrderAmount >= model.fromAmountVal || model.fromAmountVal == null) &&
                                        (ordDetail.OrderAmount <= model.toAmountVal || model.toAmountVal == null)
@@ -72,9 +72,18 @@ namespace ExcaliburCodingAssignment.Controllers
                                             OrderAmount = ordDetail.OrderAmount,
                                             OrderDesc = ordDetail.OrderDesc
                                         };
+                                        */
+
+
+                var filteredOrderDetails = _dbContext.OrderDetail
+                                       .Where(ordDetail => ordDetail.OrderDesc.ToLower().Contains(model.descParam.ToLower()) || model.descParam == null)
+                                       .Where(ordDetail => ordDetail.OrderAmount >= model.fromAmountVal || model.fromAmountVal == null)
+                                       .Where(ordDetail => ordDetail.OrderAmount <= model.toAmountVal || model.toAmountVal == null)
+                                       .ToList();
+
 
             //Use IQeryable collection type for faster performance
-            var filteredOrderDates = from ordDate in _dbContext.OrderDate.AsQueryable()
+            /*var filteredOrderDates = from ordDate in _dbContext.OrderDate.AsQueryable()
                                      where ((ordDate.OrderedDate >= model.fromDateVal || model.fromDateParam == null) &&
                                      (ordDate.OrderedDate <= model.toDateVal || model.toDateParam == null))
                                      select new OrderDate()
@@ -82,7 +91,12 @@ namespace ExcaliburCodingAssignment.Controllers
                                          OrderID = ordDate.OrderID,
                                          OrderedDate = ordDate.OrderedDate
                                      };
-                                     
+                                     */
+
+            var filteredOrderDates = _dbContext.OrderDate
+                                      .Where(ordDate => ordDate.OrderedDate >= model.fromDateVal || model.fromDateParam == null)
+                                      .Where(ordDate => ordDate.OrderedDate <= model.toDateVal || model.toDateParam == null)
+                                       .ToList();
 
             //Create the final collection by joining the prior two collections on the Order ID column
             IEnumerable < OrderCombined > result = from dt in filteredOrderDates
@@ -98,6 +112,15 @@ namespace ExcaliburCodingAssignment.Controllers
 
             //Sort by Order date ASC first and then by order amount DESC
             result = result.OrderBy(p => p.OrderedDate).ThenByDescending(p => p.OrderAmount);
+
+            //New collection to store the summed up amounts for each order Id
+            var query = from orderCombinedRow in result
+                        group orderCombinedRow by orderCombinedRow.OrderId into g
+                        select new
+                        {
+                            Name = g.Key,
+                            Sum = g.Sum(oc => oc.OrderAmount),
+                        };
 
             //Truncate the data in the OrderCombined table only if there's data in there.
             if (combinedCount > 0)
